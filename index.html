@@ -2431,37 +2431,32 @@ function toEnglishDigits(str) {
 // ============================================
 
 function formatIranDateTime(date = new Date()) {
-  // ساعت رسمی ایران: UTC+3:30
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const iranDate = new Date(utc + (3.5 * 60 * 60 * 1000));
-
   const parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
-    timeZone: 'UTC',
+    timeZone: 'Asia/Tehran',
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
-  }).formatToParts(iranDate);
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
 
-  const get = (type) =>
-    parts.find(p => p.type === type)?.value || '00';
+  const get = (type) => parts.find(p => p.type === type)?.value || '00';
 
   const year = get('year');
   const month = get('month');
   const day = get('day');
-
-  const hour = String(iranDate.getUTCHours()).padStart(2, '0');
-  const minute = String(iranDate.getUTCMinutes()).padStart(2, '0');
-  const second = String(iranDate.getUTCSeconds()).padStart(2, '0');
+  const hour = get('hour');
+  const minute = get('minute');
+  const second = get('second');
 
   return {
     date: `${year}/${month}/${day}`,
     time: `${hour}:${minute}:${second}`,
-    datetime: toPersianDigits(
-      `${year}/${month}/${day} ${hour}:${minute}:${second}`
-    )
+    datetime: `${year}/${month}/${day} ${hour}:${minute}:${second}`
   };
 }
-
 function formatPersianDate(date = new Date()) {
   return formatIranDateTime(date).date;
 }
@@ -3685,7 +3680,7 @@ function printInvoice() {
   }, 0);
   
   // تاریخ شمسی برای مهر
-   const persianDate = formatPersianDate(new Date());  
+   const persianDate = new Date().toLocaleDateString('fa-IR');  
   let html = `
   <div class="invoice-print" style="max-width:800px;margin:0 auto;background:white;padding:25px 20px;font-family:'Vazirmatn',Tahoma,sans-serif;direction:rtl;position:relative;">
     <!-- مهر تصویری -->
