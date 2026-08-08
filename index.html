@@ -3379,8 +3379,12 @@ function getPersianDateTimeFromPicker() {
   const hour = parseInt(document.getElementById('edit-date-hour').value);
   const minute = parseInt(document.getElementById('edit-date-minute').value);
   const second = parseInt(document.getElementById('edit-date-second').value) || 0;
-  
-  return `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+
+  const result =
+    `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')} ` +
+    `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+
+  return toPersianDigits(result);
 }
 
 // ============================================
