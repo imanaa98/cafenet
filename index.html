@@ -2426,29 +2426,53 @@ function toEnglishDigits(str) {
   return s;
 }
 
-// فرمت یکسان تاریخ شمسی: ۱۴۰۳/۰۴/۱۲ (همیشه فارسی، همیشه ۲ رقمی ماه/روز)
-function formatPersianDate(date) {
-  const gy = date.getFullYear();
-  const gm = date.getMonth() + 1;
-  const gd = date.getDate();
-  const py = gy - 621;
-  const pm = gm;
-  const pd = gd;
-  const datePart = `${py}/${String(pm).padStart(2, '0')}/${String(pd).padStart(2, '0')}`;
-  return toPersianDigits(datePart);
+// ============================================
+// تاریخ و ساعت شمسی ایران
+// ============================================
+
+function formatIranDateTime(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+
+  const get = (type) => parts.find(p => p.type === type)?.value || '00';
+
+  const year = get('year');
+  const month = get('month');
+  const day = get('day');
+  const hour = get('hour');
+  const minute = get('minute');
+  const second = get('second');
+
+  return {
+    date: `${year}/${month}/${day}`,
+    time: `${hour}:${minute}:${second}`,
+    datetime: `${year}/${month}/${day} ${hour}:${minute}:${second}`
+  };
 }
 
-// فرمت یکسان تاریخ+ساعت شمسی: ۱۴۰۳/۰۴/۱۲ ۱۴:۳۰:۲۵
-function formatPersianDateTime(date) {
-  const h = String(date.getHours()).padStart(2, '0');
-  const m = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  const timePart = `${h}:${m}:${s}`;
-  return `${formatPersianDate(date)} ${toPersianDigits(timePart)}`;
+function formatPersianDate(date = new Date()) {
+  return formatIranDateTime(date).date;
 }
 
-function today() { return formatPersianDate(new Date()); }
-function nowStr() { return formatPersianDateTime(new Date()); }
+function formatPersianDateTime(date = new Date()) {
+  return formatIranDateTime(date).datetime;
+}
+
+function today() {
+  return formatPersianDate(new Date());
+}
+
+function nowStr() {
+  return formatPersianDateTime(new Date());
+}
 function fmtNum(n) { return Number(n||0).toLocaleString('fa-IR'); }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id||0)) + 1 : 1; }
 function norm(s) { return (s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').toLowerCase(); }
