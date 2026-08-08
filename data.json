@@ -366,13 +366,6 @@
       "date": "1405/05/06 19:00:11",
       "total": 400000,
       "status": "تکمیل شده"
-    },
-    {
-      "id": 9,
-      "customer_id": 1,
-      "date": "۱۴۰۵/۰۸/۰۸ ۰۹:۵۷:۵۶",
-      "total": 3376000,
-      "status": "تکمیل شده"
     }
   ],
   "order_items": [
@@ -555,18 +548,6 @@
       "total_discount": 100000,
       "final_unit_price": 700000,
       "subtotal": 700000
-    },
-    {
-      "order_id": 9,
-      "product_id": 10,
-      "product_name": "کپی سیاه‌ سفید تک رو a4",
-      "qty": 80,
-      "unit_price": 58000,
-      "discount_percent": 10,
-      "discount_amount": 10000,
-      "total_discount": 1264000,
-      "final_unit_price": 42200,
-      "subtotal": 3376000
     }
   ],
   "tariffs": [],
@@ -665,5 +646,5 @@
       "date": "۱۴۰۵/۰۷/۲۹"
     }
   ],
-  "last_update": "۱۴۰۵/۰۸/۰۸ ۰۹:۵۷:۵۹"
+  "last_update": "۱۴۰۵/۰۵/۱۷ ۰۹:۵۸:۱۴"
 }
