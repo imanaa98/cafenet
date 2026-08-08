@@ -3343,16 +3343,31 @@ function setPersianDateTime(dateStr) {
   const normalized = toEnglishDigits(dateStr || '');
   const parts = getPersianDateParts(normalized);
   if (!parts) {
-    const now = new Date();
-    const pYear = now.getFullYear() - 621;
-    const pMonth = now.getMonth() + 1;
-    const pDay = now.getDate();
-    const pHour = now.getHours();
-    const pMinute = now.getMinutes();
-    const pSecond = now.getSeconds();
-    setPickerValues(pYear, pMonth, pDay, pHour, pMinute, pSecond);
-    return;
-  }
+  const iranNow = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date());
+
+  const getPart = (type) =>
+    iranNow.find(p => p.type === type)?.value || '0';
+
+  setPickerValues(
+    parseInt(getPart('year')),
+    parseInt(getPart('month')),
+    parseInt(getPart('day')),
+    parseInt(getPart('hour')),
+    parseInt(getPart('minute')),
+    parseInt(getPart('second'))
+  );
+
+  return;
+}
   setPickerValues(parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second || 0);
 }
 
