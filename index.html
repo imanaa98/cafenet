@@ -1460,7 +1460,7 @@
       <div class="hint">توکن را از <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a> دریافت کنید</div>
       <div class="hint" style="color:var(--danger);line-height:1.7;margin-top:6px">
         ⚠️ حتماً یک توکن <b>Fine-grained</b> بسازید که فقط به ریپازیتوری
-        <code>kafinet-data</code> و فقط با دسترسی <b>Contents: Read and write</b> محدود باشد،
+        <code>cafenet</code> و فقط با دسترسی <b>Contents: Read and write</b> محدود باشد،
         نه یک Classic token با دسترسی کامل به همه‌ی ریپوها. این توکن روی همین مرورگر ذخیره می‌شود؛
         روی دستگاه‌های عمومی/مشترک از آن استفاده نکنید و در پایان کار حتماً «خروج» بزنید.
       </div>
@@ -2060,7 +2060,7 @@
 // ============================================
 const SYNC_CONFIG = {
   USERNAME: 'imanaa98',
-  REPO_NAME: 'kafinet-data',
+  REPO_NAME: 'cafenet',
   FILE_PATH: 'data.json',
   get GITHUB_TOKEN() {
     return sessionStorage.getItem('github_token') || '';
