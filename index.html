@@ -2276,38 +2276,101 @@ function initSync() {
 // ============================================
 // LOGIN
 // ============================================
-function login() {
+async function validateGitHubToken(token) {
+  try {
+    const response = await fetch(
+      'https://api.github.com/repos/imanaa98/cafenet',
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        valid: false,
+        message: 'توکن نامعتبر است یا به Repository دسترسی ندارد.'
+      };
+    }
+
+    const repo = await response.json();
+
+    // توکن باید اجازه نوشتن در Repository را داشته باشد
+    if (!repo.permissions || repo.permissions.push !== true) {
+      return {
+        valid: false,
+        message: 'توکن به این Repository دسترسی نوشتن ندارد.'
+      };
+    }
+
+    return {
+      valid: true,
+      message: 'توکن معتبر است.'
+    };
+
+  } catch (error) {
+    console.error('GitHub token validation error:', error);
+
+    return {
+      valid: false,
+      message: 'ارتباط با GitHub برقرار نشد.'
+    };
+  }
+}
+
+async function login() {
   const tokenInput = document.getElementById('login-token');
   const error = document.getElementById('login-error');
   const token = tokenInput.value.trim();
-  
-  if (!token || token === '') {
+
+  if (!token) {
     error.textContent = '❌ لطفاً توکن گیت‌هاب را وارد کنید!';
     tokenInput.focus();
     tokenInput.style.borderColor = 'var(--danger)';
-    setTimeout(() => { tokenInput.style.borderColor = ''; }, 2000);
     return;
   }
-  
-  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    error.textContent = '❌ توکن وارد شده معتبر نیست! (باید با ghp_ شروع شود)';
+
+  // جلوگیری از ارسال توکن‌های کاملاً نامعتبر
+  if (
+    !token.startsWith('ghp_') &&
+    !token.startsWith('github_pat_')
+  ) {
+    error.textContent = '❌ فرمت توکن گیت‌هاب معتبر نیست.';
+    tokenInput.focus();
+    tokenInput.style.borderColor = 'var(--danger)';
+    return;
+  }
+
+  error.textContent = '⏳ در حال بررسی توکن با GitHub...';
+  tokenInput.style.borderColor = 'var(--warning)';
+
+  const validation = await validateGitHubToken(token);
+
+  if (!validation.valid) {
+    error.textContent = '⚠️ ' + validation.message;
     tokenInput.value = '';
     tokenInput.focus();
     tokenInput.style.borderColor = 'var(--danger)';
-    setTimeout(() => { tokenInput.style.borderColor = ''; }, 2000);
     return;
   }
-  
+
+  // فقط بعد از تأیید واقعی GitHub ذخیره شود
   sessionStorage.setItem('github_token', token);
+
   error.textContent = '';
+
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('app').classList.add('show');
-  
+
   initDB();
   loadDashboard();
   initSync();
   updateDate();
-  toast('✅ خوش آمدید!', 'success');
+
+  toast('✅ ورود موفق و توکن تأیید شد', 'success');
   updateLoginStatus('online', '✅ متصل');
 }
 
@@ -4474,26 +4537,75 @@ function updateDate() {
 // ============================================
 // INIT
 // ============================================
-const savedToken = sessionStorage.getItem('github_token');
-if (savedToken && savedToken !== '') {
-  document.getElementById('login-page').classList.add('hidden');
-  document.getElementById('app').classList.add('show');
-  initDB();
-  if (localStorage.getItem('theme')==='dark') { 
-    document.documentElement.dataset.theme='dark'; 
-    const btn = document.getElementById('theme-toggle');
-    if (btn) { btn.textContent = '☀️ تم روشن'; btn.classList.add('on'); }
+async function initializeApplication() {
+  const savedToken = sessionStorage.getItem('github_token');
+
+  if (savedToken && savedToken !== '') {
+
+    // قبل از ورود خودکار، توکن را دوباره با GitHub بررسی می‌کنیم
+    const validation = await validateGitHubToken(savedToken);
+
+    if (validation.valid) {
+
+      document.getElementById('login-page').classList.add('hidden');
+      document.getElementById('app').classList.add('show');
+
+      initDB();
+
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.dataset.theme = 'dark';
+
+        const btn = document.getElementById('theme-toggle');
+
+        if (btn) {
+          btn.textContent = '☀️ تم روشن';
+          btn.classList.add('on');
+        }
+      }
+
+      updateDate();
+      setInterval(updateDate, 30000);
+
+      loadDashboard();
+      initSync();
+
+    } else {
+
+      // توکن ذخیره‌شده دیگر معتبر نیست
+      sessionStorage.removeItem('github_token');
+
+      document.getElementById('login-page').classList.remove('hidden');
+      document.getElementById('app').classList.remove('show');
+
+      updateLoginStatus(
+        'offline',
+        '⛔ توکن نامعتبر یا بدون دسترسی'
+      );
+
+      const error = document.getElementById('login-error');
+
+      if (error) {
+        error.textContent =
+          '⚠️ توکن ذخیره‌شده معتبر نیست یا دسترسی نوشتن ندارد.';
+      }
+
+    }
+
+  } else {
+
+    document.getElementById('login-page').classList.remove('hidden');
+    document.getElementById('app').classList.remove('show');
+
+    document.getElementById('login-token').focus();
+
+    updateLoginStatus(
+      'offline',
+      '⛔ منتظر ورود توکن'
+    );
   }
-  updateDate();
-  setInterval(updateDate, 30000);
-  loadDashboard();
-  initSync();
-} else {
-  document.getElementById('login-page').classList.remove('hidden');
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('login-token').focus();
-  updateLoginStatus('offline', '⛔ منتظر ورود توکن');
 }
+
+initializeApplication();
 
 console.log('✅ تمام اصلاحات انجام شد:');
 console.log('   ✅ تلفن: 086-43220702');
