@@ -1899,6 +1899,23 @@
         ✅ انجام شده
       </button>
 
+      <button
+  class="btn btn-primary btn-sm"
+  onclick="filterTasksByType('all')">
+  📋 همه نوع‌ها
+</button>
+
+<button
+  class="btn btn-secondary btn-sm"
+  onclick="filterTasksByType('customer')">
+  👤 مشتری
+</button>
+
+<button
+  class="btn btn-secondary btn-sm"
+  onclick="filterTasksByType('shop')">
+  🏪 کافی‌نت
+</button>
       <div class="flex-1 search-wrap">
         <span class="search-icon">🔍</span>
 
@@ -3035,7 +3052,8 @@ function onPageLoad(key) {
 let selectedTask = null;
 let allTasks = [];
 let currentTaskFilter = 'all';
-
+let currentTaskFilter = 'all';
+  
 function loadTasks() {
   allTasks = DB.get('tasks') || [];
 
@@ -3044,6 +3062,8 @@ function loadTasks() {
 
   const search = document.getElementById('task-search');
 
+  currentTaskTypeFilter = currentTaskTypeFilter || 'all';
+  
   filterTasks(
     currentTaskFilter,
     search ? search.value : ''
@@ -3335,21 +3355,41 @@ function filterTasks(filter = 'all', query = '') {
 
   currentTaskFilter = filter;
 
-  const tasks = DB.get('tasks') || [];
+  const tasks =
+    DB.get('tasks') || [];
 
-  const q = norm(query || '');
+  const q =
+    norm(query || '');
 
   let filtered = tasks.filter(task => {
 
-    if (filter === 'pending' && task.completed) {
+    // فیلتر وضعیت
+    if (
+      filter === 'pending' &&
+      task.completed
+    ) {
       return false;
     }
 
-    if (filter === 'completed' && !task.completed) {
+    if (
+      filter === 'completed' &&
+      !task.completed
+    ) {
       return false;
     }
 
-    if (!q) return true;
+    // فیلتر نوع
+    if (
+      currentTaskTypeFilter !== 'all' &&
+      task.type !== currentTaskTypeFilter
+    ) {
+      return false;
+    }
+
+    // جستجو
+    if (!q) {
+      return true;
+    }
 
     const customer =
       getTaskCustomerName(task);
@@ -3364,7 +3404,19 @@ function filterTasks(filter = 'all', query = '') {
 
   renderTasks(filtered);
 }
+function filterTasksByType(type) {
 
+  currentTaskTypeFilter = type;
+
+  const search =
+    document.getElementById('task-search');
+
+  filterTasks(
+    currentTaskFilter,
+    search ? search.value : ''
+  );
+}
+  
 function renderTasks(tasks) {
 
   const tbody =
