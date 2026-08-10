@@ -2941,6 +2941,7 @@ const pageInfo = {
   services:  {title:'خدمات و سرویس‌ها', sub:'مدیریت خدمات کافینت'},
   orders:    {title:'سفارش و فاکتور', sub:'ثبت سفارش خدمات برای مشتری'},
   customers: {title:'مشتریان', sub:'مدیریت اطلاعات مشتریان'},
+  tasks:     {title:'کارهای مهم', sub:'پیگیری کارهای مشتریان و امور کافی‌نت'},
   tariffs:   {title:'تعرفه‌ها', sub:'قیمت‌گذاری خدمات'},
   tips:      {title:'راهنما و نکات ثبت‌نام', sub:'راهنمای مرحله‌به‌مرحله سایت‌های مختلف'},
   internal_news:{title:'اطلاعیه‌های کافینت', sub:'اطلاع‌رسانی داخلی'},
@@ -2966,12 +2967,533 @@ function onPageLoad(key) {
   else if (key==='services') loadServices();
   else if (key==='orders') loadOrderPage();
   else if (key==='customers') loadCustomers();
+  else if (key==='tasks') loadTasks();
   else if (key==='tariffs') loadTariffs();
   else if (key==='tips') loadTips();
   else if (key==='internal_news') loadNews();
   else if (key==='reports') showReport('daily');
 }
 
+
+
+  // ============================================
+// TASKS / کارهای مهم
+// ============================================
+
+let selectedTask = null;
+let allTasks = [];
+let currentTaskFilter = 'all';
+
+function loadTasks() {
+  allTasks = DB.get('tasks') || [];
+
+  loadTaskCustomers();
+  updateTaskStats();
+
+  const search = document.getElementById('task-search');
+
+  filterTasks(
+    currentTaskFilter,
+    search ? search.value : ''
+  );
+}
+
+function loadTaskCustomers() {
+
+  const select = document.getElementById('task-customer');
+
+  if (!select) return;
+
+  const customers = DB.get('customers') || [];
+
+  select.innerHTML =
+    '<option value="">بدون مشتری</option>';
+
+  customers.forEach(c => {
+
+    const option = document.createElement('option');
+
+    option.value = c.id;
+
+    option.textContent =
+      `${c.first_name || ''} ${c.last_name || ''}`.trim();
+
+    select.appendChild(option);
+
+  });
+}
+
+function addTask() {
+
+  const title =
+    document.getElementById('task-title').value.trim();
+
+  const description =
+    document.getElementById('task-description').value.trim();
+
+  const type =
+    document.getElementById('task-type').value;
+
+  const customerId =
+    document.getElementById('task-customer').value;
+
+  if (!title) {
+
+    toast('عنوان کار را وارد کنید', 'danger');
+
+    document.getElementById('task-title').focus();
+
+    return;
+  }
+
+  const tasks = DB.get('tasks') || [];
+
+  const task = {
+
+    id: nextId(tasks),
+
+    title: title,
+
+    description: description,
+
+    type: type,
+
+    customer_id:
+      customerId ? Number(customerId) : null,
+
+    created_at: nowStr(),
+
+    completed: false,
+
+    completed_at: null
+
+  };
+
+  tasks.push(task);
+
+  DB.set('tasks', tasks);
+
+  clearTaskForm();
+
+  selectedTask = null;
+
+  loadTasks();
+
+  autoSync();
+
+  toast('کار جدید ثبت شد ✅', 'success');
+}
+
+function clearTaskForm() {
+
+  const title = document.getElementById('task-title');
+  const description = document.getElementById('task-description');
+  const type = document.getElementById('task-type');
+  const customer = document.getElementById('task-customer');
+
+  if (title) title.value = '';
+  if (description) description.value = '';
+  if (type) type.value = 'customer';
+  if (customer) customer.value = '';
+
+}
+
+function getTaskCustomerName(task) {
+
+  if (!task.customer_id) return '—';
+
+  const customers = DB.get('customers') || [];
+
+  const customer =
+    customers.find(c => Number(c.id) === Number(task.customer_id));
+
+  if (!customer) return '—';
+
+  return `${customer.first_name || ''} ${customer.last_name || ''}`.trim();
+}
+
+function filterTasks(filter = 'all', query = '') {
+
+  currentTaskFilter = filter;
+
+  const tasks = DB.get('tasks') || [];
+
+  const q = norm(query || '');
+
+  let filtered = tasks.filter(task => {
+
+    if (filter === 'pending' && task.completed) {
+      return false;
+    }
+
+    if (filter === 'completed' && !task.completed) {
+      return false;
+    }
+
+    if (!q) return true;
+
+    const customer =
+      getTaskCustomerName(task);
+
+    return (
+      norm(task.title).includes(q) ||
+      norm(task.description).includes(q) ||
+      norm(customer).includes(q)
+    );
+
+  });
+
+  renderTasks(filtered);
+}
+
+function renderTasks(tasks) {
+
+  const tbody =
+    document.getElementById('tasks-table');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!tasks.length) {
+
+    tbody.innerHTML =
+      '<tr class="empty-row">' +
+      '<td colspan="7">کاری برای نمایش وجود ندارد</td>' +
+      '</tr>';
+
+    return;
+  }
+
+  [...tasks]
+    .reverse()
+    .forEach(task => {
+
+      const customer =
+        getTaskCustomerName(task);
+
+      const typeText =
+        task.type === 'customer'
+          ? '👤 مشتری'
+          : '🏪 کافی‌نت';
+
+      const status =
+        task.completed
+          ? '<span class="badge badge-success">✅ انجام شد</span>'
+          : '<span class="badge badge-warning">⏳ انجام نشده</span>';
+
+      const title =
+        esc(task.title);
+
+      const description =
+        task.description
+          ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">${esc(task.description)}</div>`
+          : '';
+
+      const completedTime =
+        task.completed_at
+          ? esc(task.completed_at)
+          : '—';
+
+      tbody.innerHTML += `
+
+        <tr
+          onclick="selectTask(${Number(task.id)})"
+          class="${selectedTask && selectedTask.id === task.id ? 'selected' : ''}">
+
+          <td>
+            ${status}
+          </td>
+
+          <td style="text-align:right">
+
+            <div style="font-weight:700">
+              ${title}
+            </div>
+
+            ${description}
+
+          </td>
+
+          <td>
+            ${typeText}
+          </td>
+
+          <td>
+            ${esc(customer)}
+          </td>
+
+          <td>
+            ${esc(task.created_at || '—')}
+          </td>
+
+          <td>
+            ${completedTime}
+          </td>
+
+          <td>
+
+            <div
+              class="order-actions"
+              onclick="event.stopPropagation()">
+
+              ${
+                task.completed
+
+                ?
+
+                `<button
+                  class="btn btn-secondary btn-sm"
+                  onclick="toggleTask(${Number(task.id)})">
+                  ↩️ بازگشت
+                </button>`
+
+                :
+
+                `<button
+                  class="btn btn-success btn-sm"
+                  onclick="toggleTask(${Number(task.id)})">
+                  ☑️ انجام شد
+                </button>`
+              }
+
+              <button
+                class="btn btn-secondary btn-sm"
+                onclick="selectTask(${Number(task.id)})">
+                ✏️
+              </button>
+
+              <button
+                class="btn btn-danger btn-sm"
+                onclick="deleteTaskById(${Number(task.id)})">
+                🗑️
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+      `;
+
+    });
+}
+
+function selectTask(id) {
+
+  const tasks =
+    DB.get('tasks') || [];
+
+  const task =
+    tasks.find(t => Number(t.id) === Number(id));
+
+  if (!task) return;
+
+  selectedTask = task;
+
+  document.getElementById('task-title').value =
+    task.title || '';
+
+  document.getElementById('task-description').value =
+    task.description || '';
+
+  document.getElementById('task-type').value =
+    task.type || 'customer';
+
+  document.getElementById('task-customer').value =
+    task.customer_id || '';
+
+  renderTasks(tasks.filter(t => {
+
+    if (currentTaskFilter === 'pending') {
+      return !t.completed;
+    }
+
+    if (currentTaskFilter === 'completed') {
+      return t.completed;
+    }
+
+    return true;
+
+  }));
+
+}
+
+function editTask() {
+
+  if (!selectedTask) {
+
+    toast('ابتدا یک کار را انتخاب کنید', 'danger');
+
+    return;
+  }
+
+  const title =
+    document.getElementById('task-title').value.trim();
+
+  if (!title) {
+
+    toast('عنوان کار را وارد کنید', 'danger');
+
+    return;
+  }
+
+  const tasks =
+    DB.get('tasks') || [];
+
+  const task =
+    tasks.find(t =>
+      Number(t.id) === Number(selectedTask.id)
+    );
+
+  if (!task) return;
+
+  task.title = title;
+
+  task.description =
+    document.getElementById('task-description').value.trim();
+
+  task.type =
+    document.getElementById('task-type').value;
+
+  const customer =
+    document.getElementById('task-customer').value;
+
+  task.customer_id =
+    customer ? Number(customer) : null;
+
+  DB.set('tasks', tasks);
+
+  selectedTask = null;
+
+  clearTaskForm();
+
+  loadTasks();
+
+  autoSync();
+
+  toast('کار ویرایش شد ✅', 'success');
+}
+
+function toggleTask(id) {
+
+  const tasks =
+    DB.get('tasks') || [];
+
+  const task =
+    tasks.find(t =>
+      Number(t.id) === Number(id)
+    );
+
+  if (!task) return;
+
+  if (task.completed) {
+
+    task.completed = false;
+
+    task.completed_at = null;
+
+  } else {
+
+    task.completed = true;
+
+    task.completed_at = nowStr();
+
+  }
+
+  DB.set('tasks', tasks);
+
+  selectedTask = null;
+
+  loadTasks();
+
+  autoSync();
+
+  toast(
+    task.completed
+      ? 'کار انجام شد ✅'
+      : 'کار به حالت انجام نشده برگشت',
+    'success'
+  );
+}
+
+function deleteTaskById(id) {
+
+  if (!confirm('این کار حذف شود؟')) {
+    return;
+  }
+
+  let tasks =
+    DB.get('tasks') || [];
+
+  tasks =
+    tasks.filter(t =>
+      Number(t.id) !== Number(id)
+    );
+
+  DB.set('tasks', tasks);
+
+  selectedTask = null;
+
+  loadTasks();
+
+  autoSync();
+
+  toast('کار حذف شد');
+}
+
+function deleteTask() {
+
+  if (!selectedTask) {
+
+    toast('ابتدا یک کار را انتخاب کنید', 'danger');
+
+    return;
+  }
+
+  deleteTaskById(selectedTask.id);
+}
+
+function updateTaskStats() {
+
+  const tasks =
+    DB.get('tasks') || [];
+
+  const pending =
+    tasks.filter(t => !t.completed).length;
+
+  const completed =
+    tasks.filter(t => t.completed).length;
+
+  const total =
+    tasks.length;
+
+  const pendingEl =
+    document.getElementById('task-pending-count');
+
+  const completedEl =
+    document.getElementById('task-completed-count');
+
+  const totalEl =
+    document.getElementById('task-total-count');
+
+  if (pendingEl) {
+    pendingEl.textContent =
+      fmtNum(pending);
+  }
+
+  if (completedEl) {
+    completedEl.textContent =
+      fmtNum(completed);
+  }
+
+  if (totalEl) {
+    totalEl.textContent =
+      fmtNum(total);
+  }
+
+}
+  
 // ============================================
 // DASHBOARD
 // ============================================
