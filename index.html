@@ -1502,6 +1502,9 @@
       <div class="nav-item" onclick="showPage('customers')">
         <span class="nav-icon">👤</span><span>مشتریان</span>
       </div>
+      <div class="nav-item" onclick="showPage('tasks')">
+        <span class="nav-icon">📋</span><span>کارهای مهم</span>
+      </div>
       <div class="nav-item" onclick="showPage('tariffs')">
         <span class="nav-icon">💰</span><span>تعرفه‌ها</span>
       </div>
@@ -1731,6 +1734,167 @@
       </div>
     </div>
 
+<!-- TASKS / کارهای مهم -->
+<div class="page" id="page-tasks">
+  <div class="page-body">
+
+    <!-- فرم افزودن کار -->
+    <div class="card mb-4">
+
+      <div class="section-header">
+        <div>
+          <div class="section-title">📋 افزودن کار مهم</div>
+          <div class="text-muted">کارهای مربوط به مشتری یا خود کافی‌نت را ثبت کنید</div>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-3 mb-3">
+
+        <div class="field">
+          <label>عنوان کار</label>
+          <input
+            id="task-title"
+            placeholder="مثلاً ثبت‌نام مدرسه علی رضایی">
+        </div>
+
+        <div class="field">
+          <label>نوع کار</label>
+          <select id="task-type">
+            <option value="customer">👤 مربوط به مشتری</option>
+            <option value="shop">🏪 مربوط به کافی‌نت</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>مشتری</label>
+          <select id="task-customer">
+            <option value="">بدون مشتری</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="field mb-3">
+        <label>توضیحات</label>
+        <textarea
+          id="task-description"
+          rows="3"
+          placeholder="توضیحات کار، مدارک مورد نیاز، نکات و..."></textarea>
+      </div>
+
+      <div class="row-center">
+
+        <button
+          class="btn btn-primary"
+          onclick="addTask()">
+          ➕ افزودن کار
+        </button>
+
+        <button
+          class="btn btn-secondary"
+          onclick="editTask()">
+          ✏️ ویرایش
+        </button>
+
+        <button
+          class="btn btn-danger btn-sm"
+          onclick="deleteTask()">
+          🗑️ حذف
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- آمار -->
+    <div class="stat-cards">
+
+      <div class="stat-card" style="--c:var(--warning)">
+        <div class="stat-val" id="task-pending-count">۰</div>
+        <div class="stat-label">انجام نشده</div>
+      </div>
+
+      <div class="stat-card" style="--c:var(--success)">
+        <div class="stat-val" id="task-completed-count">۰</div>
+        <div class="stat-label">انجام شده</div>
+      </div>
+
+      <div class="stat-card" style="--c:var(--accent)">
+        <div class="stat-val" id="task-total-count">۰</div>
+        <div class="stat-label">مجموع کارها</div>
+      </div>
+
+    </div>
+
+    <!-- فیلتر -->
+    <div class="row-center mb-3">
+
+      <button
+        class="btn btn-primary btn-sm"
+        onclick="filterTasks('all')">
+        📋 همه
+      </button>
+
+      <button
+        class="btn btn-warning btn-sm"
+        onclick="filterTasks('pending')">
+        ⏳ انجام نشده
+      </button>
+
+      <button
+        class="btn btn-success btn-sm"
+        onclick="filterTasks('completed')">
+        ✅ انجام شده
+      </button>
+
+      <div class="flex-1 search-wrap">
+        <span class="search-icon">🔍</span>
+
+        <input
+          id="task-search"
+          placeholder="جستجوی کار..."
+          oninput="filterTasks(currentTaskFilter, this.value)">
+
+        <span
+          class="search-clear"
+          onclick="clearSearch('task-search', function(){filterTasks('all','')})">
+          ✕
+        </span>
+      </div>
+
+    </div>
+
+    <!-- جدول کارها -->
+    <div class="card" style="padding:0">
+
+      <div class="table-wrap" style="border:none">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>وضعیت</th>
+              <th>کار</th>
+              <th>نوع</th>
+              <th>مشتری</th>
+              <th>زمان ثبت</th>
+              <th>زمان انجام</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+
+          <tbody id="tasks-table"></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+    
     <!-- TARIFFS -->
     <div class="page" id="page-tariffs">
       <div class="page-body">
@@ -2101,15 +2265,16 @@ async function syncToCloud() {
     setSyncStatus('syncing', '⏳ همگام‌سازی...');
     
     const data = {
-      services: DB.get('services'),
-      customers: DB.get('customers'),
-      orders: DB.get('orders'),
-      order_items: DB.get('order_items'),
-      tariffs: DB.get('tariffs'),
-      internal_news: DB.get('internal_news'),
-      tips: DB.get('tips'),
-      last_update: nowStr()
-    };
+  services: DB.get('services'),
+  customers: DB.get('customers'),
+  orders: DB.get('orders'),
+  order_items: DB.get('order_items'),
+  tariffs: DB.get('tariffs'),
+  internal_news: DB.get('internal_news'),
+  tips: DB.get('tips'),
+  tasks: DB.get('tasks'),
+  last_update: nowStr()
+};
     
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
     
@@ -2208,7 +2373,16 @@ async function syncFromCloud() {
     const data = JSON.parse(content);
     
     let changed = false;
-    const tables = ['services', 'customers', 'orders', 'order_items', 'tariffs', 'internal_news', 'tips'];
+    const tables = [
+    'services',
+    'customers',
+    'orders',
+    'order_items',
+    'tariffs',
+    'internal_news',
+    'tips',
+    'tasks'
+  ];
     
     tables.forEach(key => {
       if (data[key]) {
@@ -2465,6 +2639,8 @@ function initDB() {
   // ====== سفارش‌ها - خالی ======
   if (!DB.get('orders')) DB.set('orders', []);
   if (!DB.get('order_items')) DB.set('order_items', []);
+  // ====== کارهای مهم ======
+  if (!DB.get('tasks')) DB.set('tasks', []);
 }
 
 // ============================================
@@ -4454,15 +4630,16 @@ function filterReport(q) {
 // ============================================
 function exportData() {
   const data = {
-    services: DB.get('services'),
-    customers: DB.get('customers'),
-    orders: DB.get('orders'),
-    order_items: DB.get('order_items'),
-    tariffs: DB.get('tariffs'),
-    internal_news: DB.get('internal_news'),
-    tips: DB.get('tips'),
-    export_date: nowStr()
-  };
+  services: DB.get('services'),
+  customers: DB.get('customers'),
+  orders: DB.get('orders'),
+  order_items: DB.get('order_items'),
+  tariffs: DB.get('tariffs'),
+  internal_news: DB.get('internal_news'),
+  tips: DB.get('tips'),
+  tasks: DB.get('tasks'),
+  last_update: nowStr()
+};
   
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
@@ -4486,7 +4663,16 @@ function handleImport(event) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      const tables = ['services', 'customers', 'orders', 'order_items', 'tariffs', 'internal_news', 'tips'];
+const tables = [
+  'services',
+  'customers',
+  'orders',
+  'order_items',
+  'tariffs',
+  'internal_news',
+  'tips',
+  'tasks'
+];
       let count = 0;
       
       tables.forEach(key => {
