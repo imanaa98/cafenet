@@ -676,9 +676,9 @@
       "type": "customer",
       "customer_id": 1,
       "created_at": "۱۴۰۵/۰۵/۱۹ ۱۰:۱۰:۱۴",
-      "completed": false,
-      "completed_at": null
+      "completed": true,
+      "completed_at": "۱۴۰۵/۰۵/۱۹ ۱۰:۱۰:۳۴"
     }
   ],
-  "last_update": "۱۴۰۵/۰۵/۱۹ ۱۰:۱۰:۱۷"
+  "last_update": "۱۴۰۵/۰۵/۱۹ ۱۰:۱۰:۳۷"
 }
